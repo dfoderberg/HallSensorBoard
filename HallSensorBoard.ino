@@ -16,7 +16,8 @@ using namespace std;
 // float motor1Speed = 0;
 // float smoothedMotor1Speed = 0;
 long debounceArray[3]{0, 0, 0};
-queue<long> timerHSOne;
+long timerHSOne[5] = {0};
+int timerHSOneCounter = 0;
 bool firstTime = true;
 long previousTime = 0;
 long newTime = 0;
@@ -48,7 +49,7 @@ void loop()
 {
   while (motorState == "stop") // waiting for movement
   {
-    if (!timerHSOne.empty()) // if its not empty
+    if (timerHSOneCounter != 0) // if its not empty
     {
       motorState = "moving";
       checkSpeed();
@@ -63,7 +64,7 @@ void loop()
       //set all averages to 0?
     }
 
-  checkJam();
+    checkJam();
     //check to see if it reaches first stabilization // skip after it reaches stable state if it never reaches throw error
 
     // check to see if it meets first resistance
@@ -78,12 +79,22 @@ void checkSpeed()
   HS1Counter++;
   if (firstTime) // check to see if it is first hit since stop
   {
-    previousTime = timerHSOne.pop();
+    previousTime = timerHSOne[0];
+    timerHSOneCounter--;
+    for (int i = 0; i < (timerHSOneCounter); i++)
+    {
+      timerHSOne[i] = timerHSOne[i + 1];
+    }
     firstTime = false;
   }
   else // if not first run since stop then compare the difference in time and store it into all arrays to recalculate the average
   {
-    newTime = timerHSOne.pop();              // store in the time of next interupt
+    newTime = timerHSOne[0]; // store in the time of next interupt
+    timerHSOneCounter--;
+    for (int i = 0; i < (timerHSOneCounter); i++)
+    {
+      timerHSOne[i] = timerHSOne[i + 1];
+    }
     long timeDelta = newTime - previousTime; // calculate the time difference
     previousTime = newTime;                  // store the new time as previous time for next use
     HS1Array[(HS1Counter - 1) % 101] = timeDelta;
@@ -133,7 +144,8 @@ void checkJam()
 }
 void speed0()
 {
-  timerHSOne.push(millis()); // store the milisecond time of the interupt into queue
+  timerHSOne[timerHSOneCounter] = millis(); // store the milisecond time of the interupt into queue
+  timerHSOneCounter++;
 } //end speed0
 
 void setDebounceArray(int index)
