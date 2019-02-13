@@ -15,7 +15,7 @@ using namespace std;
 // float previousTime = 0;
 // float motor1Speed = 0;
 // float smoothedMotor1Speed = 0;
-long debounceArray[3] {0, 0, 0};
+long debounceArray[3]{0, 0, 0};
 long timerHSOne[5] = {0};
 int timerHSOneCounter = 0;
 bool firstTime = true;
@@ -49,8 +49,9 @@ void setup()
 
 void loop()
 {
-  if (!firstTime) {
-    if (checkDebounceArray(0) >= 200)
+  if (!firstTime) // if motor has been running
+  {
+    if (checkDebounceArray(0) >= 200)  //if motor has stopped
     {
       firstTime = true;
       HS1Counter = 0;
@@ -75,24 +76,25 @@ void loop()
 void checkSpeed()
 {
   // could add counter here to check positions
-  HS1Counter++;
+
   if (firstTime) // check to see if it is first hit since stop
   {
     previousTime = timerHSOne[0];
     timerHSOneCounter--;
-    for (int i = 0; i < (timerHSOneCounter); i++)
+    for (int i = 0; i < (timerHSOneCounter); i++) //shift all stored times over 1 in the array
     {
       timerHSOne[i] = timerHSOne[i + 1];
     }
-    Serial1.write(1); 
+    Serial1.write(1);
     Serial.println("motorOn");
     firstTime = false;
   }
   else // if not first run since stop then compare the difference in time and store it into all arrays to recalculate the average
   {
+    HS1Counter++;
     newTime = timerHSOne[0]; // store in the time of next interupt
     timerHSOneCounter--;
-    for (int i = 0; i < (timerHSOneCounter); i++)
+    for (int i = 0; i < (timerHSOneCounter); i++) //shift all stored times over 1 in the array
     {
       timerHSOne[i] = timerHSOne[i + 1];
     }
@@ -108,13 +110,15 @@ void checkSpeed()
     }
   }
 }
+
+/* could i do a if timeDelta > upper speed limit + 300 then increase counter and change upper speed limit. if this happens x amount of times then the speed limit has grown and it proves there is a jam. if a reading comes in less than speed limit then we need to decrease the speed limit by 300 until it is back to its upper speed limit should be easier than using an array.*/
 void checkJam()
 {
   int temp = 0;
   for (int i = 0; i < 10; i++)
   {
     if (timeDelta >= 22000)
-//    if (HS1Array[i] >= 23000)
+    //    if (HS1Array[i] >= 23000)
     {
       temp++;
     }
