@@ -32,6 +32,9 @@ float avgFifty = 0;
 float avgOneHundred = 0;
 String motorState = "stop";
 
+int upperLimit[1] = {22500};
+int tempLimit = 22750;
+
 bool initialStabilization = false;
 
 void setup()
@@ -51,14 +54,14 @@ void loop()
 {
   if (!firstTime) // if motor has been running
   {
-    if (checkDebounceArray(0) >= 200)  //if motor has stopped
+    if (checkDebounceArray(0) >= 200) //if motor has stopped
     {
       firstTime = true;
       HS1Counter = 0;
-      for (int i = 0; i < 10; i++)
-      {
-        HS1Array[i] = 0;
-      }
+      // for (int i = 0; i < 10; i++)
+      // {
+      //   HS1Array[i] = 0;
+      // }
       Serial1.write(0);
       Serial.println("motorOff");
     }
@@ -100,10 +103,10 @@ void checkSpeed()
     }
     timeDelta = newTime - previousTime; // calculate the time difference
     previousTime = newTime;             // store the new time as previous time for next use
-    HS1Array[HS1Counter % 10] = timeDelta;
+    // HS1Array[HS1Counter % 10] = timeDelta;
     // HS1Array[(HS1Counter - 1) % 101] = timeDelta;
     //    Serial.println(timerHSOneCounter);
-    if (checkDebounceArray(2) > 1000)
+    if (checkDebounceArray(2) > 500)
     {
       Serial.println(timeDelta);
       setDebounceArray(2);
@@ -115,19 +118,39 @@ void checkSpeed()
 void checkJam()
 {
   int temp = 0;
-  for (int i = 0; i < 10; i++)
+  if (timeDelta >= upperLimit[0])
   {
-    if (timeDelta >= 22000)
-    //    if (HS1Array[i] >= 23000)
+    if (timeDelta >= tempLimit)
     {
-      temp++;
+      tempLimit = tempLimit + 250;
+      if (tempLimit > (timeDelta * 1.08))
+      {
+        Serial1.write(2);
+        Serial.println("jam");
+      }
     }
   }
-  if (temp >= 2)
+  else
   {
-    Serial1.write(2);
-    Serial.println("jam");
+    if (tempLimit > timeDelta + 250)
+    {
+      tempLimit = tempLimit - 250;
+    }
   }
+
+  // for (int i = 0; i < 10; i++)
+  // {
+  //   if (timeDelta >= 22000)
+  //   //    if (HS1Array[i] >= 23000)
+  //   {
+  //     temp++;
+  //   }
+  // }
+  // if (temp >= 2)
+  // {
+  //   Serial1.write(2);
+  //   Serial.println("jam");
+  // }
 }
 
 // void calculateAverages()
