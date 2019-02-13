@@ -1,0 +1,5 @@
+{
+    "port": "/dev/cu.usbmodem14311",
+    "board": "arduino:avr:uno",
+    "sketch": "HallSensorBoard.ino"
+}

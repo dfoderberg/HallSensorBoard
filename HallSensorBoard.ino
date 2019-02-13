@@ -15,14 +15,15 @@ using namespace std;
 // float previousTime = 0;
 // float motor1Speed = 0;
 // float smoothedMotor1Speed = 0;
-long debounceArray[3]{0, 0, 0};
+long debounceArray[3] {0, 0, 0};
 long timerHSOne[5] = {0};
 int timerHSOneCounter = 0;
 bool firstTime = true;
 long previousTime = 0;
 long newTime = 0;
-long HS1Array[101] = {0};
+long HS1Array[10] = {0};
 int HS1Counter = 0;
+long timeDelta = 0;
 
 // float 5avg = 0;
 float avgTen = 0;
@@ -41,22 +42,32 @@ void setup()
   attachInterrupt(0, speed0, RISING); //enable the hall effect interupts
 
   Serial.begin(9600);
+  Serial1.begin(9600);
   // time1 = millis();
   Serial.println("Start ");
 } //end setup
 
 void loop()
 {
-  if (checkDebounceArray() >= 50)
-  {
-    firstTime = true;
+  if (!firstTime) {
+    if (checkDebounceArray(0) >= 200)
+    {
+      firstTime = true;
+      HS1Counter = 0;
+      for (int i = 0; i < 10; i++)
+      {
+        HS1Array[i] = 0;
+      }
+      Serial1.write(0);
+      Serial.println("motorOff");
+    }
   }
 
   if (timerHSOneCounter >= 1)
   {
     setDebounceArray(0);
     checkSpeed();
-    calculateAverages();
+    // calculateAverages();
     checkJam();
   }
 } //end loop
@@ -73,6 +84,8 @@ void checkSpeed()
     {
       timerHSOne[i] = timerHSOne[i + 1];
     }
+    Serial1.write(1); 
+    Serial.println("motorOn");
     firstTime = false;
   }
   else // if not first run since stop then compare the difference in time and store it into all arrays to recalculate the average
@@ -83,54 +96,76 @@ void checkSpeed()
     {
       timerHSOne[i] = timerHSOne[i + 1];
     }
-    long timeDelta = newTime - previousTime; // calculate the time difference
-    previousTime = newTime;                  // store the new time as previous time for next use
-    HS1Array[(HS1Counter - 1) % 101] = timeDelta;
-    Serial.println(timerHSOneCounter);
-    Serial.println(timeDelta);
-  }
-}
-
-void calculateAverages()
-{
-
-  avgOneHundred = (((HS1Array[(HS1Counter - 1) % 101] / 100) - (HS1Array[(HS1Counter) % 101] / 100)) + avgOneHundred);
-  avgFifty = (((HS1Array[(HS1Counter - 1) % 101] / 50) - (HS1Array[(HS1Counter + 49) % 101] / 50)) + avgFifty);
-  avgTwentyFive = (((HS1Array[(HS1Counter - 1) % 101] / 25) - (HS1Array[(HS1Counter + 24) % 101] / 25)) + avgTwentyFive);
-  avgTen = (((HS1Array[(HS1Counter - 1) % 101] / 10) - (HS1Array[(HS1Counter + 9) % 101] / 10)) + avgTen);
-  Serial.print("100 avg = ");
-  Serial.println(avgOneHundred);
-  Serial.print("50 avg = ");
-  Serial.println(avgFifty);
-  Serial.print("25 avg = ");
-  Serial.println(avgTwentyFive);
-  Serial.print("10 avg = ");
-  Serial.println(avgTen);
-}
-
-void checkJam()
-{
-  float jamPercent = .05;
-  float jamDelta = avgOneHundred * jamPercent;
-  if ((avgFifty - avgOneHundred) >= jamDelta)
-  {
-    jamPercent = .05;
-    jamDelta = avgFifty * jamPercent;
-    if ((avgTwentyFive - avgFifty) >= jamDelta)
+    timeDelta = newTime - previousTime; // calculate the time difference
+    previousTime = newTime;             // store the new time as previous time for next use
+    HS1Array[HS1Counter % 10] = timeDelta;
+    // HS1Array[(HS1Counter - 1) % 101] = timeDelta;
+    //    Serial.println(timerHSOneCounter);
+    if (checkDebounceArray(2) > 1000)
     {
-      jamPercent = .05;
-      jamDelta = avgTwentyFive * jamPercent;
-      if ((avgTen - avgTwentyFive) >= jamDelta)
-      {
-        Serial.println("Jammed");
-      }
+      Serial.println(timeDelta);
+      setDebounceArray(2);
     }
   }
 }
+void checkJam()
+{
+  int temp = 0;
+  for (int i = 0; i < 10; i++)
+  {
+    if (timeDelta >= 22000)
+//    if (HS1Array[i] >= 23000)
+    {
+      temp++;
+    }
+  }
+  if (temp >= 2)
+  {
+    Serial1.write(2);
+    Serial.println("jam");
+  }
+}
+
+// void calculateAverages()
+// {
+
+// //   avgOneHundred = (((HS1Array[(HS1Counter - 1) % 101] / 100) - (HS1Array[(HS1Counter + 99) % 101] / 100)) + avgOneHundred);
+// //   avgFifty = (((HS1Array[(HS1Counter - 1) % 101] / 50) - (HS1Array[(HS1Counter + 49) % 101] / 50)) + avgFifty);
+// //   avgTwentyFive = (((HS1Array[(HS1Counter - 1) % 101] / 25) - (HS1Array[(HS1Counter + 24) % 101] / 25)) + avgTwentyFive);
+// //   avgTen = (((HS1Array[(HS1Counter - 1) % 101] / 10) - (HS1Array[(HS1Counter + 90) % 101] / 10)) + avgTen);
+// // //  Serial.print("100 avg = ");
+// // //  Serial.println(avgOneHundred);
+// // //  Serial.print("50 avg = ");
+// // //  Serial.println(avgFifty);
+// // //  Serial.print("25 avg = ");
+// // //  Serial.println(avgTwentyFive);
+// //   Serial.print("10 avg = ");
+// //   Serial.println(avgTen);
+// }
+
+// void checkJam()
+// {
+//   float jamPercent = .05;
+//   float jamDelta = avgOneHundred * jamPercent;
+//   if ((avgFifty - avgOneHundred) >= jamDelta)
+//   {
+//     jamPercent = .05;
+//     jamDelta = avgFifty * jamPercent;
+//     if ((avgTwentyFive - avgFifty) >= jamDelta)
+//     {
+//       jamPercent = .05;
+//       jamDelta = avgTwentyFive * jamPercent;
+//       if ((avgTen - avgTwentyFive) >= jamDelta)
+//       {
+// //        Serial.println("Jammed");
+//       }
+//     }
+//   }
+// }
 
 void speed0()
 {
-  timerHSOne[timerHSOneCounter] = millis(); // store the milisecond time of the interupt into queue
+  timerHSOne[timerHSOneCounter] = micros(); // store the milisecond time of the interupt into queue
   timerHSOneCounter++;
 
 } //end speed0
