@@ -5,17 +5,7 @@
 
 using namespace std;
 
-// int count[] = {0}; //Actuator
-//                    //int maxCounts = 1150;//number of counts when fully extended
-
-// float speedM1 = 0;
-// int time1 = 0;
-// int time2 = 0;
-// float previousPositionM1 = 0;
-// float previousTime = 0;
-// float motor1Speed = 0;
-// float smoothedMotor1Speed = 0;
-long debounceArray[3]{0, 0, 0};
+long debounceArray[3] {0, 0, 0};
 long timerHSOne[5] = {0};
 int timerHSOneCounter = 0;
 bool firstTime = true;
@@ -24,30 +14,30 @@ long newTime = 0;
 long HS1Array[10] = {0};
 int HS1Counter = 0;
 long timeDelta = 0;
-
-// float 5avg = 0;
-float avgTen = 0;
-float avgTwentyFive = 0;
-float avgFifty = 0;
-float avgOneHundred = 0;
+//
+//float avgTen = 0;
+//float avgTwentyFive = 0;
+//float avgFifty = 0;
+//float avgOneHundred = 0;
 String motorState = "stop";
 
-int upperLimit[1] = {22500};
-int tempLimit = 22750;
+int upperLimit[1] = {0};
+int tempLimit = 21250;
+int count = 0;
 
 bool initialStabilization = false;
 
 void setup()
 {
-
   pinMode(hall0, INPUT);
   digitalWrite(hall0, HIGH);          //set hall, set low to start for rising edge
   attachInterrupt(0, speed0, RISING); //enable the hall effect interupts
 
-  Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial.begin(57600);
+  Serial1.begin(57600);
   // time1 = millis();
   Serial.println("Start ");
+  upperLimit[0] = 21500;
 } //end setup
 
 void loop()
@@ -62,17 +52,25 @@ void loop()
       // {
       //   HS1Array[i] = 0;
       // }
-      Serial1.write(0);
+      Serial1.write('s');
+      count++;
       Serial.println("motorOff");
     }
+  }
+  if (firstTime == true)
+  {
+
+    setDebounceArray(1);
   }
 
   if (timerHSOneCounter >= 1)
   {
-    setDebounceArray(0);
+    setDebounceArray(0); // used in begining of loop
     checkSpeed();
     // calculateAverages();
-    checkJam();
+    if (checkDebounceArray(1) > 2000) {
+      checkJam();
+    }
   }
 } //end loop
 
@@ -88,7 +86,8 @@ void checkSpeed()
     {
       timerHSOne[i] = timerHSOne[i + 1];
     }
-    Serial1.write(1);
+    Serial1.write('m');
+    count++;
     Serial.println("motorOn");
     firstTime = false;
   }
@@ -108,27 +107,38 @@ void checkSpeed()
     //    Serial.println(timerHSOneCounter);
     if (checkDebounceArray(2) > 500)
     {
-      Serial.println(timeDelta);
+            Serial.println(timeDelta);
+            Serial.print("count = ");
+            Serial.println(count);
       setDebounceArray(2);
     }
   }
 }
 
-/* could i do a if timeDelta > upper speed limit + 300 then increase counter and change upper speed limit. if this happens x amount of times then the speed limit has grown and it proves there is a jam. if a reading comes in less than speed limit then we need to decrease the speed limit by 300 until it is back to its upper speed limit should be easier than using an array.*/
+
 void checkJam()
 {
+//  if (timeDelta >= upperLimit[0]){
+//      Serial1.write(2);
+//      count++;
+//      Serial.println("jam");
+//    
+//  }
   int temp = 0;
   if (timeDelta >= upperLimit[0])
   {
-    if (timeDelta >= tempLimit)
-    {
-      tempLimit = tempLimit + 250;
-      if (tempLimit > (timeDelta * 1.08))
-      {
-        Serial1.write(2);
+    //    count++;
+//    if (timeDelta >= tempLimit)
+//    {
+//      tempLimit = tempLimit + 250;
+//      if (tempLimit > (upperLimit[0]) * 1.08)
+//      {
+        
+        Serial1.write('J');
+//        count++;
         Serial.println("jam");
-      }
-    }
+//      }
+//    }
   }
   else
   {
